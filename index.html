@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Indeed検索</title>
+  
+  <!-- アプリ風表示の設定（PWA化） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="求人検索">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910791.png">
+
+  <style>
+    :root {
+      --primary: #2557a7;
+      --bg: #f2f4f8;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: var(--bg);
+      color: #333;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-header {
+      text-align: center;
+      padding: 12px 0 20px;
+    }
+    .app-header h1 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--primary);
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      color: #555;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-sizing: border-box;
+      font-size: 15px;
+      background-color: #fafafa;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background-color: #fff;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+    }
+    .row .form-group {
+      flex: 1;
+    }
+    .btn-search {
+      width: 100%;
+      padding: 16px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 87, 167, 0.3);
+    }
+    .btn-search:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>🔍 Indeed 検索アシスタント</h1>
+</div>
+
+<div class="card">
+  <div class="form-group">
+    <label>こだわり条件・職種</label>
+    <input type="text" id="keyword" placeholder="例: 未経験 在宅 事務">
+  </div>
+
+  <div class="row">
+    <div class="form-group">
+      <label>勤務地</label>
+      <input type="text" id="location" placeholder="例: 東京都">
+    </div>
+    <div class="form-group">
+      <label>エリア範囲</label>
+      <select id="radius">
+        <option value="">指定なし</option>
+        <option value="10">10km以内</option>
+        <option value="25">25km以内</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>勤務体系</label>
+    <select id="jobType">
+      <option value="">すべて</option>
+      <option value="fulltime">正社員</option>
+      <option value="parttime">パート・アルバイト</option>
+      <option value="temporary">派遣社員</option>
+      <option value="contract">契約社員</option>
+    </select>
+  </div>
+
+  <div class="row">
+    <div class="form-group">
+      <label>給与区分</label>
+      <select id="salaryType">
+        <option value="月給">月給</option>
+        <option value="時給">時給</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>最低金額</label>
+      <input type="number" id="salaryMin" placeholder="例: 250000">
+    </div>
+  </div>
+
+  <button class="btn-search" onclick="searchIndeed()">Indeedで検索</button>
+</div>
+
+<script>
+  function searchIndeed() {
+    const rawKeyword = document.getElementById('keyword').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const radius = document.getElementById('radius').value;
+    const jobType = document.getElementById('jobType').value;
+    const salaryType = document.getElementById('salaryType').value;
+    const salaryMin = document.getElementById('salaryMin').value.trim();
+
+    let keywords = [];
+    if (rawKeyword) keywords.push(rawKeyword);
+    if (salaryMin) keywords.push(`${salaryType}${salaryMin}円以上`);
+
+    const params = new URLSearchParams();
+    if (keywords.length > 0) params.append('q', keywords.join(' '));
+    if (location) params.append('l', location);
+    if (radius) params.append('radius', radius);
+    if (jobType) params.append('jt', jobType);
+
+    window.open(`https://jp.indeed.com/jobs?${params.toString()}`, '_blank');
+  }
+</script>
+
+</body>
+</html>
