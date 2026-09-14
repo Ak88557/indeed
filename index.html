@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Indeed検索</title>
   
-  <!-- アプリ風表示の設定（PWA化） -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="求人検索">
-  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910791.png">
 
   <style>
     :root {
@@ -22,11 +20,10 @@
       padding: 16px;
       background-color: var(--bg);
       color: #333;
-      -webkit-tap-highlight-color: transparent;
     }
     .app-header {
       text-align: center;
-      padding: 12px 0 20px;
+      padding: 10px 0 16px;
     }
     .app-header h1 {
       margin: 0;
@@ -59,17 +56,63 @@
       font-size: 15px;
       background-color: #fafafa;
     }
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
-      background-color: #fff;
-    }
     .row {
       display: flex;
       gap: 10px;
     }
     .row .form-group {
       flex: 1;
+    }
+    /* トグルスイッチのスタイル */
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eef3fc;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .toggle-label {
+      font-size: 14px;
+      font-weight: bold;
+      color: #2557a7;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
     }
     .btn-search {
       width: 100%;
@@ -83,9 +126,6 @@
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(37, 87, 167, 0.3);
     }
-    .btn-search:active {
-      transform: scale(0.98);
-    }
   </style>
 </head>
 <body>
@@ -95,8 +135,17 @@
 </div>
 
 <div class="card">
+  <!-- 完全一致モード切り替え -->
+  <div class="toggle-group">
+    <span class="toggle-label">🎯 すべての条件に完全一致</span>
+    <label class="switch">
+      <input type="checkbox" id="exactMatch" checked>
+      <span class="slider"></span>
+    </label>
+  </div>
+
   <div class="form-group">
-    <label>こだわり条件・職種</label>
+    <label>こだわり条件・職種（スペース区切り）</label>
     <input type="text" id="keyword" placeholder="例: 未経験 在宅 事務">
   </div>
 
@@ -109,6 +158,7 @@
       <label>エリア範囲</label>
       <select id="radius">
         <option value="">指定なし</option>
+        <option value="5">5km以内</option>
         <option value="10">10km以内</option>
         <option value="25">25km以内</option>
       </select>
@@ -145,6 +195,7 @@
 
 <script>
   function searchIndeed() {
+    const isExact = document.getElementById('exactMatch').checked;
     const rawKeyword = document.getElementById('keyword').value.trim();
     const location = document.getElementById('location').value.trim();
     const radius = document.getElementById('radius').value;
@@ -152,12 +203,28 @@
     const salaryType = document.getElementById('salaryType').value;
     const salaryMin = document.getElementById('salaryMin').value.trim();
 
-    let keywords = [];
-    if (rawKeyword) keywords.push(rawKeyword);
-    if (salaryMin) keywords.push(`${salaryType}${salaryMin}円以上`);
+    let queryParts = [];
+
+    if (rawKeyword) {
+      const words = rawKeyword.split(/\s+/);
+      if (isExact) {
+        // 完全一致モード：各単語を "" で囲んで AND 検索化
+        const exactWords = words.map(w => `"${w}"`);
+        queryParts.push(exactWords.join(' AND '));
+      } else {
+        queryParts.push(words.join(' '));
+      }
+    }
+
+    if (salaryMin) {
+      const salaryStr = `${salaryType}${salaryMin}円以上`;
+      queryParts.push(isExact ? `"${salaryStr}"` : salaryStr);
+    }
 
     const params = new URLSearchParams();
-    if (keywords.length > 0) params.append('q', keywords.join(' '));
+    if (queryParts.length > 0) {
+      params.append('q', queryParts.join(' '));
+    }
     if (location) params.append('l', location);
     if (radius) params.append('radius', radius);
     if (jobType) params.append('jt', jobType);
