@@ -63,7 +63,6 @@
     .row .form-group {
       flex: 1;
     }
-    /* トグルスイッチのスタイル */
     .toggle-group {
       display: flex;
       align-items: center;
@@ -135,9 +134,8 @@
 </div>
 
 <div class="card">
-  <!-- 完全一致モード切り替え -->
   <div class="toggle-group">
-    <span class="toggle-label">🎯 すべての条件に完全一致</span>
+    <span class="toggle-label">🎯 単語の完全一致 (AND)</span>
     <label class="switch">
       <input type="checkbox" id="exactMatch" checked>
       <span class="slider"></span>
@@ -149,11 +147,12 @@
     <input type="text" id="keyword" placeholder="例: 未経験 在宅 事務">
   </div>
 
+  <div class="form-group">
+    <label>勤務地（複数入力時はスペース区切り）</label>
+    <input type="text" id="location" placeholder="例: 東京 神奈川">
+  </div>
+
   <div class="row">
-    <div class="form-group">
-      <label>勤務地</label>
-      <input type="text" id="location" placeholder="例: 東京都">
-    </div>
     <div class="form-group">
       <label>エリア範囲</label>
       <select id="radius">
@@ -163,17 +162,16 @@
         <option value="25">25km以内</option>
       </select>
     </div>
-  </div>
-
-  <div class="form-group">
-    <label>勤務体系</label>
-    <select id="jobType">
-      <option value="">すべて</option>
-      <option value="fulltime">正社員</option>
-      <option value="parttime">パート・アルバイト</option>
-      <option value="temporary">派遣社員</option>
-      <option value="contract">契約社員</option>
-    </select>
+    <div class="form-group">
+      <label>勤務体系</label>
+      <select id="jobType">
+        <option value="">すべて</option>
+        <option value="fulltime">正社員</option>
+        <option value="parttime">パート・アルバイト</option>
+        <option value="temporary">派遣社員</option>
+        <option value="contract">契約社員</option>
+      </select>
+    </div>
   </div>
 
   <div class="row">
@@ -197,7 +195,7 @@
   function searchIndeed() {
     const isExact = document.getElementById('exactMatch').checked;
     const rawKeyword = document.getElementById('keyword').value.trim();
-    const location = document.getElementById('location').value.trim();
+    const rawLocation = document.getElementById('location').value.trim();
     const radius = document.getElementById('radius').value;
     const jobType = document.getElementById('jobType').value;
     const salaryType = document.getElementById('salaryType').value;
@@ -205,10 +203,10 @@
 
     let queryParts = [];
 
+    // 1. 職種・キーワードの処理
     if (rawKeyword) {
       const words = rawKeyword.split(/\s+/);
       if (isExact) {
-        // 完全一致モード：各単語を "" で囲んで AND 検索化
         const exactWords = words.map(w => `"${w}"`);
         queryParts.push(exactWords.join(' AND '));
       } else {
@@ -216,6 +214,20 @@
       }
     }
 
+    // 2. 勤務地の処理（複数ある場合は OR 検索化）
+    let primaryLocation = '';
+    if (rawLocation) {
+      const locs = rawLocation.split(/\s+/);
+      if (locs.length === 1) {
+        primaryLocation = locs[0];
+      } else {
+        // 複数勤務地の場合はキーワード側に (東京 OR 神奈川) のように追加
+        const locQuery = locs.map(l => `"${l}"`).join(' OR ');
+        queryParts.push(`(${locQuery})`);
+      }
+    }
+
+    // 3. 給与の処理
     if (salaryMin) {
       const salaryStr = `${salaryType}${salaryMin}円以上`;
       queryParts.push(isExact ? `"${salaryStr}"` : salaryStr);
@@ -225,7 +237,7 @@
     if (queryParts.length > 0) {
       params.append('q', queryParts.join(' '));
     }
-    if (location) params.append('l', location);
+    if (primaryLocation) params.append('l', primaryLocation);
     if (radius) params.append('radius', radius);
     if (jobType) params.append('jt', jobType);
 
